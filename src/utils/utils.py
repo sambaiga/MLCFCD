@@ -111,6 +111,34 @@ def paa(series:np.array, emb_size:int, scaler=None):
                 np.add.at(res, idx, series[pos])
                 # res[idx] = res[idx] + series[pos]
             return res / series_len
+        
+        
+def fryze_power_decomposition(i, v, T=500):
+    #pact = i[:,None]*v[:, None]
+    #pact = np.sum(pact)/T
+    #vrms = np.sum(v[:,None]**2)/T
+    p    = i*v
+    vrsm = v**2
+    i_active=p.mean()*v/vrsm.mean()  
+    i_non_active = i- i_active 
+    return i_active, i_non_active
+
+
+def compute_active_non_active_features(current, voltage, emb_size=50):
+    emb_size=50
+    n=len(current)
+    with tqdm(n) as pbar:
+        features = []
+        for k in range(n):
+            i_active, i_non_active = fryze_power_decomposition(current[k], voltage[k])
+            i_active=paa(i_active.flatten(), emb_size)
+            i_non_active=paa(i_non_active.flatten(), emb_size)
+            features.append(np.hstack([i_non_active[:,None], i_active[:,None]]))
+            pbar.set_description('frze processed: %d percent' % round((1 + k)*100/n, 2))
+            pbar.update(1)
+    pbar.close() 
+    features=torch.tensor(features).float().transpose(1,2)   
+    return features        
 
 def multi_dimension_paa(series:np.array, emb_size:int):
     """Multidimensional PAA reduce  series input from N x d to emb_size x d
@@ -123,13 +151,43 @@ def multi_dimension_paa(series:np.array, emb_size:int):
         [2D array emb_sizexd] -- [description]
     """
     paa_out = np.zeros((series.shape[0], emb_size))
-    
-    for k in range(series.shape[0]):
-        paa_out[k] = paa(series[k].flatten(), emb_size)
+    n = series.shape[0]
+    with tqdm(n) as pbar:
+        for k in range(n):
+            paa_out[k] = paa(series[k].flatten(), emb_size)
+            pbar.set_description('processed: %d' % round((1 + k)*100/n, 2))
+            pbar.update(1)
+        pbar.close()        
     return paa_out
 
+def create_paa(series:np.array, emb_size:int):
+    """[summary]
+    
+    Arguments:
+        series {np.array} -- [description]
+        emb_size {int} -- [description]
+    
+    Keyword Arguments:
+        scale {bool} -- [description] (default: {False})
+    
+    Returns:
+        [type] -- [description]
+    """
 
-
+    
+    n = len(series)
+    paa_out = np.zeros((n, emb_size))
+    with tqdm(n) as pbar:
+        for k in range(n):
+            paa_out[k] = paa(series[k].flatten(), emb_size)
+            pbar.set_description('processed: %d percent' % round((1 + k)*100/n, 2))
+            pbar.update(1)
+        pbar.close() 
+        series = paa_out
+    
+    
+    series = torch.tensor(series).float()
+    return series
 
 def create_distance_similarity_matrix(series:np.array, emb_size:int, p:int):
     """[summary]
@@ -212,6 +270,8 @@ def generate_input_feature(current, voltage, image_type, width=50, multi_dimensi
             inputs = create_N_voltage_current_image(current, voltage, width)
         else:
             inputs = create_voltage_current_image(current, voltage, width)
+    elif image_type=="current":
+        inputs = create_paa(current, width)       
     else:
         inputs = []
         if  multi_dimension and current.ndim==3:
@@ -230,4 +290,71 @@ def generate_input_feature(current, voltage, image_type, width=50, multi_dimensi
                 pbar.close()    
         inputs = torch.stack(inputs)
     return inputs
+
+
+
+def compute_similarities_distance(current, p):
+    dist = []
+    for k in range(len(current)):
+        dist+=[get_distance_measure(current[k].unsqueeze(1), p=p)]
+    
+    return torch.stack(dist)
+
+def compute_wrg(dist, eps=10, delta=20):
+    dist = torch.floor(dist*eps)
+    dist[dist>delta]=delta
+    return dist
+    
+
+def generate_input_feature(current, voltage, image_type, width=50,  p=2):
         
+    if image_type == "current":
+        feature = create_paa(current, width).unsqueeze(1) 
+    elif image_type == "decomposed_current":
+        feature = compute_active_non_active_features(current, voltage, width)  
+    elif image_type =="decompose_current_rms" :
+        feature = compute_active_non_active_features(current, voltage, width)  
+        feature=feature[:,0,:]**2 + feature[:,1,:]**2   
+        feature = feature.unsqueeze(1)
+        
+    elif image_type == "vi":
+        feature = create_voltage_current_image(current, voltage, width)
+    elif image_type == "distance":
+        feature = create_paa(current, width)
+        feature = compute_similarities_distance(feature, 2).unsqueeze(1)
+    elif image_type =="wrg":
+        current = create_paa(current, width)
+        distance = compute_similarities_distance(current, 2)
+        feature     = compute_wrg(distance, eps=10, delta=20).unsqueeze(1)
+        
+    elif image_type == "decomposed_distance":
+        feature = compute_active_non_active_features(current, voltage, width)  
+        dist_1 = compute_similarities_distance(feature[:,0,:], 2).unsqueeze(1)
+        dist_2 = compute_similarities_distance(feature[:,1,:], 2).unsqueeze(1)
+        feature   = torch.cat([dist_1, dist_2], 1)
+    
+    elif image_type == "decomposed_distance_rms":
+        feature = compute_active_non_active_features(current, voltage, width) 
+        feature=feature[:,0,:]**2 + feature[:,1,:]**2    
+        feature= feature/feature.max()
+        feature = compute_similarities_distance(feature, 2).unsqueeze(1)
+        
+        
+        
+    elif image_type == "decomposed_wrg":
+        feature = compute_active_non_active_features(current, voltage, width)  
+        dist_1 = compute_similarities_distance(feature[:,0,:], 2).unsqueeze(1)
+        dist_2 = compute_similarities_distance(feature[:,1,:], 2).unsqueeze(1)
+        distance  = torch.cat([dist_1, dist_2], 1)
+        feature     = compute_wrg(distance, eps=10, delta=20)
+        
+    elif image_type == "decomposed_vi":
+        feature = compute_active_non_active_features(current, voltage, width)
+        volts = create_paa(voltage, width)
+        vi_1=create_voltage_current_image(feature[:,0,:], volts, width)
+        vi_2=create_voltage_current_image(feature[:,1,:], volts, width)
+        feature  = torch.cat([vi_1, vi_2], 1)
+    else:
+        raise AssertionError("define correct image type")
+        
+    return feature        

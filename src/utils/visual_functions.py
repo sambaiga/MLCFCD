@@ -4,26 +4,31 @@ import matplotlib.ticker as ticker
 from sklearn.metrics import multilabel_confusion_matrix
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import seaborn as sns
 import matplotlib
 import itertools
+from cycler import cycler
+
+
+
 nice_fonts = {
         # Use LaTeX to write all text
         "text.usetex": True,
         "font.family": "serif",
-        'axes.labelsize': 8, # fontsize for x and y labels (was 10)
-        'axes.titlesize': 8,
+        'axes.labelsize': 12, # fontsize for x and y labels (was 10)
+        'axes.titlesize': 12,
+        #'axes.prop_cycle' : cycler(color=dark_colors),
         # Use 10pt font in plots, to match 10pt font in document
-        "font.size": 10,
+        "font.size": 12,
         # Make the legend/label fonts a little smaller
-        "legend.fontsize": 8,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
+        "legend.fontsize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
 }
 matplotlib.rcParams.update(nice_fonts)
 SPINE_COLOR="gray"
-import seaborn as sns
-sns.set_color_codes("pastel")
-import itertools
+qualitative_colors = sns.color_palette("Set3", 10)
+sns.palplot(qualitative_colors)
 
 def set_figure_size(fig_width=None, fig_height=None, columns=2):
     assert(columns in [1,2])

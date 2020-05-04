@@ -8,6 +8,9 @@ def create_conv2(in_channels, out_channels, kernel_size, bias=True, dilation=1, 
         in_channels,out_channels, kernel_size, bias=bias, dilation=dilation, stride=stride)
 
 
+def create_conv1(in_channels, out_channels, kernel_size, bias=True, dilation=1, stride=2):
+    return nn.Conv1d(
+        in_channels,out_channels, kernel_size, bias=bias, dilation=dilation, stride=stride)
 
 
 class MLPLayer(nn.Module):
@@ -25,7 +28,7 @@ class MLPLayer(nn.Module):
             self.layers.append(layer)
             self.add_module("layer"+str(i+1), layer)            
             if batch_norm and i!=0:# if used as discriminator, then there is no batch norm in the first layer
-                bn = nn.BatchNorm1d(layer_sizes[i+1], eps=1e-05, momentum=0.1)
+                bn = nn.BatchNorm1d(layer_sizes[i+1])
                 self.layers.append(bn)
                 self.add_module("bn"+str(i+1), bn)
             self.layers.append(activation)
@@ -48,10 +51,6 @@ class MLPLayer(nn.Module):
                 if isinstance(layer, nn.Linear):
                     init.kaiming_normal_(layer.weight.data)
                     init.normal_(layer.bias.data)
-                    
-                if isinstance(layer, nn.BatchNorm1d):
-                    init.normal_(layer.weight.data, mean=1, std=0.02)
-                    init.constant_(layer.bias.data, 0)
             except: pass
                 
 

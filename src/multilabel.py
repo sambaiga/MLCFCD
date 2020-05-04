@@ -5,14 +5,14 @@ import warnings
 import pandas as pd
 import numpy as np
 import torch
-from net.modules import MultilabelVI
+from net.modules import MultilabelVI, MultilabelBinaryVI, MultilabelMaxI, MultilabelVItrajectory, MultilabelVIDecomposeI
 from net.learner import Learner
 from net.loss_functions import WeightedCrossEntropyLoss, WeightedBinaryCrossEntropyLoss
 from net.utils import CSVLogger, get_post_neg_weight
 from net.metrics import  fit_metrics, compute_metrics
 from net.baseline import LearnBaseline
 from utils.data_generator import get_data, get_loaders
-from utils.utils import generate_input_feature
+from utils.utils import generate_input_feature, create_paa, compute_active_non_active_features, generate_input_feature
 from collections import OrderedDict
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
@@ -57,8 +57,13 @@ class Multilabel():
         #load data
         
         current, voltage, labels, I_max = get_data(data_type=self.dataset)
-        input_feature = generate_input_feature(current, voltage, self.feature, 50, True)
-        self.in_size = 1 if self.dataset=="plaid" else 3
+        
+        if self.feature =='decompose-current-vi':
+                I_max  = compute_active_non_active_features(current, voltage, emb_size=50)  
+                input_feature = generate_input_feature(current, voltage, 'vi', 50, True)     
+        else:    
+            input_feature = generate_input_feature(current, voltage, self.feature, width=50,  p=2)
+        in_size = input_feature.size(1) if self.dataset=="plaid" else 3
         
 
         #encode labels
@@ -82,7 +87,8 @@ class Multilabel():
         y_pred_total = []
         y_test_total = []
         computed_metrics ={}
-        mskf = MultilabelStratifiedShuffleSplit(n_splits=4, test_size=0.20, random_state=42)
+        #mskf = MultilabelStratifiedShuffleSplit(n_splits=4, test_size=0.20, random_state=42)
+        mskf = MultilabelStratifiedKFold(n_splits=10, random_state=42)
         k = 1
         self.arch = f'{self.MODEL_NAME}_{self.dataset}_{self.feature}'
         for train_index, test_index in  mskf.split(input_feature, y):
@@ -98,11 +104,16 @@ class Multilabel():
                 self.saved_model_path   = f'{self.checkpoint_path}/{self.arch}_fold_{str(k)}_baseline_checkpoint.pkl'
                 self.learner_baseline = LearnBaseline(model_name=self.MODEL_NAME)
                 img_tra=Xtrain.reshape(len(Xtrain), -1)
-                img_tra=np.concatenate([img_tra, Itrain], 1)
-
                 img_test=Xtest.reshape(len(Xtest), -1)
-                img_test=np.concatenate([img_test, Itest], 1)
-
+                if self.feature in [ "decompose_current_vi", "vi_imax", "wrg_imax", "distance_imax", "decompose_current_rms"]: 
+                    img_tra  = np.concatenate([Xtrain.reshape(len(Xtrain), -1), Itrain.reshape(len(Itrain), -1)], 1)
+                    img_test = np.concatenate([Xtest.reshape(len(Xtest), -1), Itest.reshape(len(Itest), -1)], 1)
+                
+                        
+                if self.feature == "i-max":
+                    img_tra=Itrain
+                    img_test=Itest
+                    
                 
                 if os.path.isfile(self.saved_model_path):
                     print("=> The baseline model has been trained and saved in '{}'".format(self.saved_model_path))
@@ -130,7 +141,22 @@ class Multilabel():
                     self.arch  = f"{self.arch}_sigmoid"
                     num_class =  self.num_class
                 
-                model = self.return_network(num_class, self.in_size).to(self.device)
+              
+                 
+                if self.feature in [ "vi_imax", "wrg_imax", "distance_imax"]:
+                        model =  MultilabelVI(in_size=in_size, d_model=128, out_size=num_class, dropout=0.25)    
+                        
+                if self.feature in [ "vi", "wrg", "distance", "decomposed_distance", "decomposed_wrg", "decomposed_vi",  "decomposed_distance_rms"]:
+                    model =  MultilabelBinaryVI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
+                     
+                if self.feature == "i-max":
+                    model =  MultilabelMaxI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
+               
+                if self.feature in ["decomposed_current", "current",  "decompose_current_rms"]:
+                    model =  MultilabelVItrajectory(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
+                if self.feature in ["decomposed_current-vi", "decomposed_current_wrg", "decomposed_current_distance"]:
+                    model =  MultilabelVIDecomposeI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25)                           
+                model = model.to(self.device)
                 
                 
                 #define loss function and optimisation
@@ -163,7 +189,7 @@ class Multilabel():
                 self.learner.fit(loaders['train'], loaders['val'], csv_logger, self.batch_size,
                 best_score, start_epoch, anneal_factor = 0.1,
                 anneal_against_train_loss= False,  anneal_with_restarts = False,
-                anneling_patience = 10)
+                anneling_patience = 20)
 
                 #get prediction
                 _, _ = self.learner.load_saved_model()
@@ -192,21 +218,21 @@ class Multilabel():
         
         return net
 
-def get_experiments(dataset, optim_params):
+def get_experiments(dataset, optim_params, feature):
     experiments = {'CNNModel': Multilabel({'n_epochs':500,'batch_size':16,
         'model_name':"CNNModel",
         'optim_params':optim_params,
-        'feature':"vi",
+        'feature':feature,
         "dataset":dataset}),
-        'MLKNNbaseline': Multilabel({'n_epochs':100,'batch_size':4,
+        'MLKNNbaseline': Multilabel({'n_epochs':1,'batch_size':4,
         'model_name':"MLKNNbaseline",
         'optim_params':optim_params,
-        'feature':"vi",
+        'feature':feature,
         "dataset":dataset}),
-        'BRKNNbaseline': Multilabel({'n_epochs':100,'batch_size':4,
+        'BRKNNbaseline': Multilabel({'n_epochs':1,'batch_size':4,
         'model_name':"BRkNNbaseline",
         'optim_params':optim_params, 
-        'feature':"vi",
+        'feature':feature,
         "dataset":dataset})
         }
     return experiments
@@ -218,8 +244,8 @@ if __name__ == "__main__":
              "softmax":True
             }
 
-    
-    for dataset in ["lilac", "lilac_isc", "plaid"]:
-        experiments = get_experiments(dataset, optim_params)
-        for model_name, clf in experiments.items():
-            clf.partial_fit()
+    for feature in ["decomposed_current", "decomposed_distance", "vi", "current", "distance"]:
+        for dataset in ["plaid"]:
+            experiments = get_experiments(dataset, optim_params, feature)
+            for model_name, clf in experiments.items():
+                clf.partial_fit()
