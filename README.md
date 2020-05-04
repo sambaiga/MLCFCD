@@ -46,12 +46,12 @@ The script used to analyse results and produce visualisation presented in this p
 
 Our model achieves the following performance on PLAID 2020 version dataset :
 
-### [Image Classification on ImageNet](https://paperswithcode.com/sota/image-classification-on-imagenet)
+
 
 | Model name         | V-I binary image  | Proposed approach |
 | ------------------ |---------------- | -------------- |
-| MLkNN  model |     85%         |      95%       |
-| Proposed CNN model  |     85%         |      0.94±0.015       |
+| MLkNN  model |     0.779±0.028        |      0.833±0.022      |
+| Proposed CNN model  |     0.826±0.024         |      0.94±0.015       |
 
 
 
