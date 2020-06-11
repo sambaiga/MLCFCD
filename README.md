@@ -2,7 +2,7 @@
 
 # Multi-label Learning for Appliances Recognition in NILM using Fryze-Current Decomposition and Convolutional Neural Network.
 
-This repository is the official implementation of [Convolutional Neural Network-based Multilabel Learning for  Appliance Recognition  Applying Frze-Current Decomposition and Euclidean distance similarity matrix](). 
+This repository is the official implementation of [Multi-label Learning for Appliances Recognition in NILM using Fryze-Current Decomposition and Convolutional Neural Network](). 
 
 <img src="block.png" width="80%" height="50%">
 
