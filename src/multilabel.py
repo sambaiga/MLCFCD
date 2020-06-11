@@ -5,7 +5,7 @@ import warnings
 import pandas as pd
 import numpy as np
 import torch
-from net.modules import MultilabelVI, MultilabelBinaryVI, MultilabelMaxI, MultilabelVItrajectory, MultilabelVIDecomposeI
+from net.modules import MultilabelAWRG, MultilabelVI, MultilabelBinaryVI, MultilabelMaxI, MultilabelVItrajectory, MultilabelVIDecomposeI
 from net.learner import Learner
 from net.loss_functions import WeightedCrossEntropyLoss, WeightedBinaryCrossEntropyLoss
 from net.utils import CSVLogger, get_post_neg_weight
@@ -59,8 +59,15 @@ class Multilabel():
         current, voltage, labels, I_max = get_data(data_type=self.dataset)
         
         if self.feature =='decompose-current-vi':
-                I_max  = compute_active_non_active_features(current, voltage, emb_size=50)  
-                input_feature = generate_input_feature(current, voltage, 'vi', 50, True)     
+            I_max  = compute_active_non_active_features(current, voltage, emb_size=50)  
+            input_feature = generate_input_feature(current, voltage, 'vi', 50, True)     
+        elif self.feature in ["wrg", "decomposed_wrg"]:
+            print(f"Load data for {self.feature} feature")
+            if self.feature =="wrg":
+                input_feature = generate_input_feature(current, voltage, "distance", width=50,  p=2)
+            else:    
+                input_feature = generate_input_feature(current, voltage, "decomposed_distance", width=50,  p=2)
+        
         else:    
             input_feature = generate_input_feature(current, voltage, self.feature, width=50,  p=2)
         in_size = input_feature.size(1) if self.dataset=="plaid" else 3
@@ -141,20 +148,21 @@ class Multilabel():
                     self.arch  = f"{self.arch}_sigmoid"
                     num_class =  self.num_class
                 
-              
+                if self.feature in [ "wrg",  "decomposed_wrg"]:
+                    model =  MultilabelAWRG(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
                  
-                if self.feature in [ "vi_imax", "wrg_imax", "distance_imax"]:
+                elif self.feature in [ "vi_imax", "distance_imax"]:
                         model =  MultilabelVI(in_size=in_size, d_model=128, out_size=num_class, dropout=0.25)    
                         
-                if self.feature in [ "vi", "wrg", "distance", "decomposed_distance", "decomposed_wrg", "decomposed_vi",  "decomposed_distance_rms"]:
+                elif self.feature in [ "vi", "distance", "decomposed_distance", "decomposed_vi",  "decomposed_distance_rms"]:
                     model =  MultilabelBinaryVI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
                      
-                if self.feature == "i-max":
+                elif self.feature == "i-max":
                     model =  MultilabelMaxI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
                
-                if self.feature in ["decomposed_current", "current",  "decompose_current_rms"]:
+                elif self.feature in ["decomposed_current", "current",  "decompose_current_rms"]:
                     model =  MultilabelVItrajectory(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
-                if self.feature in ["decomposed_current-vi", "decomposed_current_wrg", "decomposed_current_distance"]:
+                elif self.feature in ["decomposed_current-vi", "decomposed_current_distance"]:
                     model =  MultilabelVIDecomposeI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25)                           
                 model = model.to(self.device)
                 
@@ -244,7 +252,7 @@ if __name__ == "__main__":
              "softmax":True
             }
 
-    for feature in ["decomposed_current", "decomposed_distance", "vi", "current", "distance"]:
+    for feature in ["wrg", "decomposed_wrg"]:
         for dataset in ["plaid"]:
             experiments = get_experiments(dataset, optim_params, feature)
             for model_name, clf in experiments.items():

@@ -1,8 +1,31 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .layers import create_conv2, create_conv1, MLPLayer,  ScaledDotProductAttention
+from .layers import create_conv2, create_conv1, MLPLayer
 from .utils import  initilize_final_layer
+
+
+class ReccurrentBlock(torch.nn.Module):
+    """[summary]
+    
+    Arguments:
+        torch {[type]} -- [description]
+    
+    Returns:
+        [type] -- [description]
+    """
+    def __init__(self, eps=10, delta=10):
+        super(ReccurrentBlock, self).__init__()
+        self.eps         = torch.nn.Parameter(torch.randn(1), requires_grad = True)
+        self.delta       = torch.nn.Parameter(torch.randn(1), requires_grad = True)
+        torch.nn.init.constant_(self.eps, eps)
+        torch.nn.init.constant_(self.delta, delta)
+        
+    def forward(self, dist):
+        dist = torch.floor(dist*self.eps)
+        dist[dist>self.delta]=self.delta
+        return dist
+
 
 
 class ConvEncoder(nn.Module):
@@ -105,6 +128,38 @@ class MultilabelVI(nn.Module):
         dec_out     = self.dropout(self.dec_out(comb_out))
         out         = self.fc_out(dec_out)
         return out
+
+class MultilabelAWRG(nn.Module):
+    def __init__(self, in_size=None,  d_model=128,  
+                out_size=12, dropout=0.1, pi=None):
+        super(MultilabelAWRG, self).__init__()
+        self.rec_block = ReccurrentBlock()
+        self.enc_cnn = ConvEncoder(in_size=in_size,bn=False)
+        #self.enc_imax = MLPLayer(in_size=in_size, hidden_arch=[16, 32, 64], output_size=128, batch_norm=False)
+        self.dec_out  = MLPLayer(in_size=d_model, hidden_arch=[512, 1024], output_size=128, batch_norm=False)
+        self.dropout = nn.Dropout(dropout)
+        self.fc_out  = nn.Linear(d_model, out_size)
+        
+
+        initilize_final_layer(self.fc_out, pi)
+        
+
+    def init_hidden(self, bsz):
+        pass
+            
+    def forward(self, x, i_max):
+        x  = self.rec_block(x)
+        enc_out_vi   = self.dropout(self.enc_cnn(x))
+        #enc_out_imax = self.dropout(self.enc_imax(i_max))
+        
+        #comb_out    = torch.cat([enc_out_imax, enc_out_vi], 1)
+        dec_out     = self.dropout(self.dec_out(enc_out_vi))
+        out         = self.fc_out(dec_out)
+        return out
+
+
+
+
 
 
 
