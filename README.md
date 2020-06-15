@@ -6,7 +6,7 @@ This repository is the official implementation of [Multi-label Learning for Appl
 
 <img src="block.png" width="80%" height="50%">
 
-
+The paper present a multi-label learning strategy for appliance recognition in NILM. The proposed approach associates multiple appliances to an observed aggregate current signal. We first demonstrate that for aggregated measurements, the use of activation current as an input feature offers improved performance compared to the regularly used V-I binary image feature. Second, we apply the Fryze power theory and Euclidean distance matrix as pre-processing steps for the multi-label classifier.
 ## Requirements
 
 - python
@@ -38,8 +38,8 @@ python multilabel.py
 
 The script used to analyse results and produce visualisation presented in this paper can be found in notebook directory
  
- - Results and Error Analysis notebook provide scripts for results and error analysis.
- - Visualisation paper notebook provide scripts for reproducing most of the figure used in this paper.
+ - ResultsAnalysis notebook provides scripts for results and error analysis.
+ - VisualizePaper and VisualizeFeature notebook provide scripts for reproducing most of the figure used in this paper.
 
 
 ## Results
