@@ -4,7 +4,7 @@
 
 This repository is the official implementation of [Multi-label Learning for Appliances Recognition in NILM using Fryze-Current Decomposition and Convolutional Neural Network](). 
 
-<img src="block.png" width="80%" height="50%">
+<img src="block.png" width="100%" height="100%">
 
 The paper present a multi-label learning strategy for appliance recognition in NILM. The proposed approach associates multiple appliances to an observed aggregate current signal. We first demonstrate that for aggregated measurements, the use of activation current as an input feature offers improved performance compared to the regularly used V-I binary image feature. Second, we apply the Fryze power theory and Euclidean distance matrix as pre-processing steps for the multi-label classifier.
 ## Requirements
@@ -18,10 +18,10 @@ The paper present a multi-label learning strategy for appliance recognition in N
 - torch
 - sklearn
 - seaborn
-- [iterstrat]
+- [iterstrat]()
 - [skmultilearn]()
 - joblib
-- [palettable]
+- [palettable]()
   
 
 
@@ -30,7 +30,7 @@ The paper present a multi-label learning strategy for appliance recognition in N
 To train the model(s) in the paper, run this command in src directory:
 
 ```train
-python multilabel.py
+python run_experiment.py
 ```
 
 
@@ -39,21 +39,25 @@ python multilabel.py
 The script used to analyse results and produce visualisation presented in this paper can be found in notebook directory
  
  - ResultsAnalysis notebook provides scripts for results and error analysis.
- - VisualizePaper and VisualizeFeature notebook provide scripts for reproducing most of the figure used in this paper.
+ - Visual-paper  notebook provide scripts for reproducing most of the figure used in this paper.
 
 
 ## Results
 
-Our model achieves the following performance on PLAID 2020 version dataset :
+Our model achieves the following performance on PLAID aggregated dataset :
+
+<img src="result_2.png" width="100%" height="100%">
+
+Per-appliance score for different feature representation
+
+<img src="result_1.png" width="100%" height="100%">
 
 
+## Prediction sample
+<p float="left">
+ <img src="pred_decompose.png" width="150" /> 
+  <img src="pred_vi.png" width="150" />
+  <img src="pred_decompose_distance.png" width="150" />
+</p>
 
-| Model name         | V-I binary image  | Proposed approach |
-| ------------------ |---------------- | -------------- |
-| MLkNN  model |     0.779±0.028        |      0.833±0.022      |
-| Proposed CNN model  |     0.826±0.024         |      0.94±0.015       |
-
-
-
-## Contributing
 

@@ -8,24 +8,51 @@ import seaborn as sns
 import matplotlib
 import itertools
 from cycler import cycler
-
+from palettable.colorbrewer.qualitative import Pastel1_9
 
 
 nice_fonts = {
         # Use LaTeX to write all text
         "text.usetex": True,
+        "text.latex.preamble" : [r'\usepackage{amsmath}',r'\usepackage{amssymb}'],
         "font.family": "serif",
-        'axes.labelsize': 12, # fontsize for x and y labels (was 10)
-        'axes.titlesize': 12,
-        #'axes.prop_cycle' : cycler(color=dark_colors),
-        # Use 10pt font in plots, to match 10pt font in document
-        "font.size": 12,
+        # Always save as 'tight'
+        "savefig.bbox" : "tight",
+        "savefig.pad_inches" : 0.05,
+        "xtick.direction" : "in",
+        "xtick.major.size" : 3,
+        "xtick.major.width" : 0.5,
+        "xtick.minor.size" : 1.5,
+        "xtick.minor.width" : 0.5,
+        "xtick.minor.visible" : False,
+        "xtick.top" : True,
+        "ytick.direction" : "in",
+        "ytick.major.size" : 3,
+        "ytick.major.width" : 0.5,
+        "ytick.minor.size" : 1.5,
+        "ytick.minor.width" : 0.5,
+        "ytick.minor.visible" : False,
+        "ytick.right" : True,
+        "figure.dpi" : 600,
+        "font.serif" : "Times New Roman",
+        "mathtext.fontset" : "dejavuserif",
+        "axes.labelsize": 14,
+        "font.size": 16,
         # Make the legend/label fonts a little smaller
         "legend.fontsize": 12,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
+        "xtick.labelsize": 14,
+        "ytick.labelsize": 14,
+        # Set line widths
+        "axes.linewidth" : 0.5,
+        "grid.linewidth" : 0.5,
+        "lines.linewidth" : 1.,
+        # Remove legend frame
+        "legend.frameon" : False,
+        'axes.prop_cycle' : cycler(color=Pastel1_9.hex_colors)
 }
 matplotlib.rcParams.update(nice_fonts)
+SPINE_COLOR="gray"
+colors =[plt.cm.Blues(0.6), plt.cm.Reds(0.4), plt.cm.Greens(0.6), '#ffcc99', plt.cm.Greys(0.6)]
 SPINE_COLOR="gray"
 qualitative_colors = sns.color_palette("Set3", 10)
 sns.palplot(qualitative_colors)
@@ -34,7 +61,7 @@ def set_figure_size(fig_width=None, fig_height=None, columns=2):
     assert(columns in [1,2])
 
     if fig_width is None:
-        fig_width = 3.39 if columns==1 else 6.9 # width in inches
+        fig_width = 4 if columns==1 else 7 # width in inches
 
     if fig_height is None:
         golden_mean = (np.sqrt(5)-1.0)/2.0    # Aesthetic ratio

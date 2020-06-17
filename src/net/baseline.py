@@ -29,29 +29,28 @@ class LearnBaseline():
 
       
     
-    def fit(self, Xtrain, Xtest, ytrain, ytest, checkpoint_path):
+    def fit(self, Xtrain, Xtest=None, ytrain=None, ytest=None, checkpoint_path=None):
        
         best_score=0
         print(f"Train {self.model_name}")
         clf = self.model
         clf.fit(Xtrain,ytrain)
-        y_pred = clf.predict(Xtest)
-        y_pred_tra = clf.predict(Xtrain)
-
-        y_pred = sparse2dense(y_pred)
-        y_pred_tra = sparse2dense(y_pred_tra)
+        if ytest is not None:
+            y_pred = clf.predict(Xtest)
+            y_pred = sparse2dense(y_pred)
+            y_pred_tra = clf.predict(Xtrain)
+            y_pred_tra = sparse2dense(y_pred_tra)
+            print(compute_tp_fp_fn(ytest, y_pred, axis=0))
+            metrics_test = compute_metrics(ytest, y_pred, all_metrics=True, verbose=False)
+            #metrics_tra = compute_metrics(ytrain, y_pred_tra, all_metrics=True, verbose=False)
         
-        print(compute_tp_fp_fn(ytest, y_pred, axis=0))
-        metrics_test = compute_metrics(ytest, y_pred, all_metrics=True, verbose=False)
-        #metrics_tra = compute_metrics(ytrain, y_pred_tra, all_metrics=True, verbose=False)
-        
 
-        joblib.dump(clf, '{}'.format(checkpoint_path))
-        """  
-        print("[TRAIN]  {1:.4f} {2:.4f}" \
-            .format(metrics_tra['maF1'], metrics_test['maF1']))
+        
+        
+        if checkpoint_path is not None:
+            joblib.dump(clf, '{}'.format(checkpoint_path))
+        
         """
-
         print('\n')
         print('**********************************')
         print('best subACC:  '+str(metrics_test['subACC']))
@@ -65,7 +64,7 @@ class LearnBaseline():
         print('best meanFDR: '+str(metrics_test['meanFDR']))
         print('best meanMCC: '+str(metrics_test['meanMCC']))
         print('**********************************')
-        
+        """
 
     def load_model(self, checkpoint_path):
         print(f"load saved  {self.model_name} model ")

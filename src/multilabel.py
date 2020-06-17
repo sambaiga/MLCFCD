@@ -5,7 +5,7 @@ import warnings
 import pandas as pd
 import numpy as np
 import torch
-from net.modules import MultilabelAWRG, MultilabelVI, MultilabelBinaryVI, MultilabelMaxI, MultilabelVItrajectory, MultilabelVIDecomposeI
+from net.modules import MultilabelConv1D, MultilabelConv2D
 from net.learner import Learner
 from net.loss_functions import WeightedCrossEntropyLoss, WeightedBinaryCrossEntropyLoss
 from net.utils import CSVLogger, get_post_neg_weight
@@ -19,17 +19,17 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 warnings.filterwarnings("ignore")
 
+def set_seed(seed = 4783957):
+    
+    print("set seed")
+    np.random.seed(seed)
+    random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+    else:
+        torch.manual_seed(seed)
 
-seed = 4783957
-print("set seed")
-np.random.seed(seed)
-random.seed(seed)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(seed)
-else:
-    torch.manual_seed(seed)
-
-
+set_seed()
 class Multilabel():
 
     def __init__(self, params):
@@ -52,26 +52,10 @@ class Multilabel():
 
     def partial_fit(self):
 
-        
-
         #load data
-        
         current, voltage, labels, I_max = get_data(data_type=self.dataset)
-        
-        if self.feature =='decompose-current-vi':
-            I_max  = compute_active_non_active_features(current, voltage, emb_size=50)  
-            input_feature = generate_input_feature(current, voltage, 'vi', 50, True)     
-        elif self.feature in ["wrg", "decomposed_wrg"]:
-            print(f"Load data for {self.feature} feature")
-            if self.feature =="wrg":
-                input_feature = generate_input_feature(current, voltage, "distance", width=50,  p=2)
-            else:    
-                input_feature = generate_input_feature(current, voltage, "decomposed_distance", width=50,  p=2)
-        
-        else:    
-            input_feature = generate_input_feature(current, voltage, self.feature, width=50,  p=2)
-        in_size = input_feature.size(1) if self.dataset=="plaid" else 3
-        
+        input_feature = generate_input_feature(current, voltage, self.feature, width=50,  p=2)
+        in_size = input_feature.size(1) 
 
         #encode labels
         mlb = MultiLabelBinarizer()
@@ -80,21 +64,15 @@ class Multilabel():
         classes=list(np.unique(np.hstack(labels)))
         self.num_class=len(classes)
 
-        
-        
-
-    
-
         metric_fn = fit_metrics()
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        
         
 
         # perform multilabel stratified cross-validation to ensure equal distribuitions of states
         y_pred_total = []
         y_test_total = []
         computed_metrics ={}
-        #mskf = MultilabelStratifiedShuffleSplit(n_splits=4, test_size=0.20, random_state=42)
+        
         mskf = MultilabelStratifiedKFold(n_splits=10, random_state=42)
         k = 1
         self.arch = f'{self.MODEL_NAME}_{self.dataset}_{self.feature}'
@@ -112,15 +90,6 @@ class Multilabel():
                 self.learner_baseline = LearnBaseline(model_name=self.MODEL_NAME)
                 img_tra=Xtrain.reshape(len(Xtrain), -1)
                 img_test=Xtest.reshape(len(Xtest), -1)
-                if self.feature in [ "decompose_current_vi", "vi_imax", "wrg_imax", "distance_imax", "decompose_current_rms"]: 
-                    img_tra  = np.concatenate([Xtrain.reshape(len(Xtrain), -1), Itrain.reshape(len(Itrain), -1)], 1)
-                    img_test = np.concatenate([Xtest.reshape(len(Xtest), -1), Itest.reshape(len(Itest), -1)], 1)
-                
-                        
-                if self.feature == "i-max":
-                    img_tra=Itrain
-                    img_test=Itest
-                    
                 
                 if os.path.isfile(self.saved_model_path):
                     print("=> The baseline model has been trained and saved in '{}'".format(self.saved_model_path))
@@ -147,23 +116,10 @@ class Multilabel():
                 else: 
                     self.arch  = f"{self.arch}_sigmoid"
                     num_class =  self.num_class
-                
-                if self.feature in [ "wrg",  "decomposed_wrg"]:
-                    model =  MultilabelAWRG(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
-                 
-                elif self.feature in [ "vi_imax", "distance_imax"]:
-                        model =  MultilabelVI(in_size=in_size, d_model=128, out_size=num_class, dropout=0.25)    
-                        
-                elif self.feature in [ "vi", "distance", "decomposed_distance", "decomposed_vi",  "decomposed_distance_rms"]:
-                    model =  MultilabelBinaryVI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
-                     
-                elif self.feature == "i-max":
-                    model =  MultilabelMaxI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
-               
-                elif self.feature in ["decomposed_current", "current",  "decompose_current_rms"]:
-                    model =  MultilabelVItrajectory(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25) 
-                elif self.feature in ["decomposed_current-vi", "decomposed_current_distance"]:
-                    model =  MultilabelVIDecomposeI(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25)                           
+                if self.feature in ["decomposed_current", "current"]:
+                    model =  MultilabelConv1D(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25)    
+                elif self.feature in [ "vi", "distance", "decomposed_distance"]:
+                    model =  MultilabelConv2D(in_size=in_size, d_model=128, out_size=num_class,  dropout=0.25)
                 model = model.to(self.device)
                 
                 
@@ -214,46 +170,3 @@ class Multilabel():
         np.save(f"{self.results_path}{self.arch}_pred.npy", np.vstack(y_pred_total))
         np.save(f"{self.results_path}{self.arch}_true.npy", np.vstack(y_test_total))
         np.save(f"{self.results_path}{self.arch}_results.npy", computed_metrics)
-
-
-       
-
-
-    def return_network(self, num_class, in_size):
-        
-        if self.MODEL_NAME == "CNNModel":
-            net =  MultilabelVI(in_size=in_size, d_model=128, out_size=num_class)
-        
-        return net
-
-def get_experiments(dataset, optim_params, feature):
-    experiments = {'CNNModel': Multilabel({'n_epochs':500,'batch_size':16,
-        'model_name':"CNNModel",
-        'optim_params':optim_params,
-        'feature':feature,
-        "dataset":dataset}),
-        'MLKNNbaseline': Multilabel({'n_epochs':1,'batch_size':4,
-        'model_name':"MLKNNbaseline",
-        'optim_params':optim_params,
-        'feature':feature,
-        "dataset":dataset}),
-        'BRKNNbaseline': Multilabel({'n_epochs':1,'batch_size':4,
-        'model_name':"BRkNNbaseline",
-        'optim_params':optim_params, 
-        'feature':feature,
-        "dataset":dataset})
-        }
-    return experiments
-
-if __name__ == "__main__":
-    optim_params ={"opt_params": {"lr": 1e-3, "betas":(0.9, 0.98), "eps":1e-9},
-             "opt_name":"adam",
-             "sheduler_name":"ReduceLROnPlateau",
-             "softmax":True
-            }
-
-    for feature in ["wrg", "decomposed_wrg"]:
-        for dataset in ["plaid"]:
-            experiments = get_experiments(dataset, optim_params, feature)
-            for model_name, clf in experiments.items():
-                clf.partial_fit()
