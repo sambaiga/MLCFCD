@@ -53,9 +53,9 @@ Our model achieves the following performance on PLAID aggregated dataset :
 
 ## Prediction sample
 <p float="left">
- <img src="pred_decompose.png" width="50%" /> 
-  <img src="pred_vi.png" width="50%" />
-  <img src="pred_decompose_distance.png" width="50%" />
+ <img src="pred_decompose.png" width="250" /> 
+  <img src="pred_vi.png" width="250" />
+  <img src="pred_decompose_distance.png" width="250" />
 </p>
 
 
