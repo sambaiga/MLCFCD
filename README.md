@@ -46,11 +46,9 @@ The script used to analyse results and produce visualisation presented in this p
 
 Our model achieves the following performance on PLAID aggregated dataset :
 
-<img src="result_2.png" width="100%" height="100%">
+<img src="result_2.png" width="50%" height="50%">
 
-Per-appliance score for different feature representation
 
-<img src="result_1.png" width="100%" height="100%">
 
 
 ## Prediction sample
