@@ -61,4 +61,19 @@ Our model achieves the following performance on PLAID aggregated dataset :
 If you find this tool useful and use it (or parts of it), we ask you to cite the following work in your publications:
 > Faustine, A.; Pereira, L. Multi-Label Learning for Appliance Recognition in NILM Using Fryze-Current Decomposition and Convolutional Neural Network. Energies 2020, 13, 4154.
 
+``tex
+@article{Faustine2020,
+  doi = {10.3390/en13164154},
+  url = {https://doi.org/10.3390/en13164154},
+  year = {2020},
+  month = aug,
+  publisher = {{MDPI} {AG}},
+  volume = {13},
+  number = {16},
+  pages = {4154},
+  author = {Anthony Faustine and Lucas Pereira},
+  title = {Multi-Label Learning for Appliance Recognition in {NILM} Using Fryze-Current Decomposition and Convolutional Neural Network},
+  journal = {Energies}
+}
+``
 
