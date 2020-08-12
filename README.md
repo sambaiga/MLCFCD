@@ -59,19 +59,6 @@ Our model achieves the following performance on PLAID aggregated dataset :
 </p>
 
 If you find this tool useful and use it (or parts of it), we ask you to cite the following work in your publications:
-```tex
-  @article{Faustine2020,
-  doi = {10.3390/en13133374},
-  url = {https://doi.org/10.3390/en13133374},
-  year = {2020},
-  month = jul,
-  publisher = {{MDPI} {AG}},
-  volume = {13},
-  number = {13},
-  pages = {3374},
-  author = {Anthony Faustine and Lucas Pereira},
-  title = {Improved Appliance Classification in Non-Intrusive Load Monitoring Using Weighted Recurrence Graph and Convolutional Neural Networks},
-  journal = {Energies}
-}
-```
+> Faustine, A.; Pereira, L. Multi-Label Learning for Appliance Recognition in NILM Using Fryze-Current Decomposition and Convolutional Neural Network. Energies 2020, 13, 4154.
+
 
