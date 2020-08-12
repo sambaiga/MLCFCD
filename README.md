@@ -59,8 +59,8 @@ Our model achieves the following performance on PLAID aggregated dataset :
 </p>
 
 If you find this tool useful and use it (or parts of it), we ask you to cite the following work in your publications:
-
-> @article{Faustine2020,
+```tex
+  @article{Faustine2020,
   doi = {10.3390/en13133374},
   url = {https://doi.org/10.3390/en13133374},
   year = {2020},
@@ -73,5 +73,5 @@ If you find this tool useful and use it (or parts of it), we ask you to cite the
   title = {Improved Appliance Classification in Non-Intrusive Load Monitoring Using Weighted Recurrence Graph and Convolutional Neural Networks},
   journal = {Energies}
 }
-
+```
 
