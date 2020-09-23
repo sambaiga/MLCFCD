@@ -15,13 +15,13 @@ The paper present a multi-label learning strategy for appliance recognition in N
 - pandas
 - matplotlib
 - tqdm
-- torch
+- [torch](https://pytorch.org/)
 - sklearn
 - seaborn
-- [iterstrat]()
-- [skmultilearn]()
-- joblib
-- [palettable]()
+- [iterstrat](https://github.com/trent-b/iterative-stratification): pip install iterative-stratification
+- [skmultilearn](http://scikit.ml/): pip install scikit-multilearn
+- [joblib](https://joblib.readthedocs.io/en/latest/):
+- [palettable](https://jiffyclub.github.io/palettable/): pip install palettable
   
 
 
