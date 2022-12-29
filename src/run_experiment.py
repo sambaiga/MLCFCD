@@ -1,5 +1,5 @@
-from .multilabel import Multilabel
-from .complexity import ComplexityEvaluator
+from experiment.multilabel import Multilabel
+from experiment.complexity import ComplexityEvaluator
 
 def get_experiments(dataset, optim_params, feature):
     experiments = {'CNNModel': Multilabel({'n_epochs':500,'batch_size':16,
@@ -36,4 +36,11 @@ def run_experiment_one(dataset="plaid"):
     complexity = ComplexityEvaluator()  
     results = {}
     for i,  model in enumerate(["CNN", "MLkNN"]):
-        results[model] = complexity.Run(model)         
+        results[model] = complexity.Run(model)
+
+    results         
+
+
+if __name__ == "__main__":
+    for dataset in ['plaid', 'lilacd']:
+        results=run_experiment_one(dataset=dataset)
